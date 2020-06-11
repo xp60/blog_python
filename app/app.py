@@ -8,6 +8,7 @@ from jinja2 import Environment, FileSystemLoader
 
 import orm
 from coroweb import add_routes, add_static
+from models import User,Blog,Comment
 
 
 def init_jinja2(app, **kw):
@@ -101,17 +102,33 @@ def datetime_filter(t):
     dt = datetime.fromtimestamp(t)
     return u'%s年%s月%s日' % (dt.year, dt.month, dt.day)
 
-    
-def index(request):
-    return web.Response(body=b'<h1>hello world</h1>', content_type='text/html')
+
+
+# async def index(request):
+#     users = await User.findAll()
+#     return {
+#         '__template__': 'test.html',
+#         'users': users
+#     }
 
 
 
 async def init(loop):
-    app = web.Application(loop=loop)
-    app.router.add_route('GET', '/', index)
+    # app = web.Application(loop=loop)
+    # app.router.add_route('GET', '/', index)
+    # srv = await loop.create_server(app.make_handler(), '127.0.0.1', 9000)
+    # logging.info('server started at http://127.0.0.1:9000.......')
+    # return srv
+
+    await orm.create_pool(loop=loop, host='127.0.0.1', port=3306, user='root', password='123', db='awesome')
+    app = web.Application(loop=loop, middlewares=[
+        logger_factory, response_factory
+    ])
+    init_jinja2(app, filters=dict(datetime=datetime_filter))
+    add_routes(app, 'handlers')
+    add_static(app)
     srv = await loop.create_server(app.make_handler(), '127.0.0.1', 9000)
-    logging.info('server started at http://127.0.0.1:9000.......')
+    logging.info('server started at http://127.0.0.1:9000...')
     return srv
 
 
